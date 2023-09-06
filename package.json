@@ -1,0 +1,31 @@
+{
+  "name": "back-shopper",
+  "version": "1.0.0",
+  "description": "API de produtos",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Caua Miller",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "mysql2": "^3.6.0",
+    "sequelize": "^6.32.1"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.19.2",
+    "@types/cookie-parser": "^1.4.4",
+    "@types/cors": "^2.8.14",
+    "@types/es6-promise": "^3.3.0",
+    "@types/express": "^4.17.17",
+    "@types/express-validator": "^3.0.0",
+    "@types/node": "^20.5.9",
+    "@types/sequelize": "^4.28.15",
+    "typescript": "5.1.6"
+  }
+}
