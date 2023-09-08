@@ -1,41 +1,30 @@
-import * as Bluebird from 'bluebird';
-import { Product, ProductModel } from '../models/product';
+import { Product } from '../models/product';
+import { calculatePriceVariation } from '../utils';
 
 export class ProductService {
-    static get productAttributes() {
-        return ['code', 'name', 'cost_price', 'sales_price']
-    }
-
-    private static _product
-    static get product() {
-        return ProductService._product
-    }
-
-    createProduct({ code, name, cost_price, sales_price }: ProductModel) {
-        return Product.create({ code, name, cost_price, sales_price })
-            .then(p => this.getProductByCode(p!.code))
-    }
-
-    async validateUpdate(code: number, new_price: number) {
+    async validateUpdate(code: number, new_price: number){
         try {
             const product = await Product.findOne({ where: { code } })
+            let message = ''
 
             if (!product) {
-                throw new Error('Product not found.')
+                return { product: { code: code }, message: 'Produto não encontrado.' }
             }
 
-            // Valida se o novo preço de venda não é menor que o preço de custo
-            if (new_price > product.cost_price) {
-                // Valida se a variação de preço é de 10%
-                const highestLimit = product.sales_price * 1.10
-                const lowestLimit = product.sales_price * 0.90
+            const { cost_price, sales_price } = product
 
-                if(new_price === highestLimit || new_price === lowestLimit){
-                    
-                }
-                return 'The price variation is different of 10%'
+            // Valida se o novo preço de venda é menor que o preço de custo
+            if (new_price < cost_price) {
+                message += 'Preço de venda é menor que o preço de custo.\n'
             }
-            return 'Sales_price is lower than cost_price.'
+
+            // Valida se a variação de preço é de 10%
+            const { highestLimit, lowestLimit } = calculatePriceVariation(sales_price)
+            if (new_price !== highestLimit && new_price !== lowestLimit) {
+                message += `A variação de preço é diferente de 10%. O novo preço deve ser ${highestLimit} ou ${lowestLimit}.`
+            }
+
+            return { product: product, message: message }
         }
         catch (error) {
             throw new Error(error.message)
@@ -47,8 +36,13 @@ export class ProductService {
             const product = await Product.findOne({ where: { code } })
 
             if (!product) {
-                throw new Error('Product not found.')
+                throw new Error('Produto não encontrado.')
             }
+
+            product.sales_price = new_price
+            product.save()
+
+            return product
         }
         catch (error) {
             throw new Error(error.message)
@@ -60,6 +54,6 @@ export class ProductService {
     }
 
     getProductByCode(code: number) {
-        return Product.findOne({ where: { code: code } })
+        return Product.findByPk(code)
     }
 }

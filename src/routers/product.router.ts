@@ -1,29 +1,17 @@
 import { Router } from "express"
-import { matchedData } from "express-validator"
 import { ProductService } from "../services/product.service"
+import { PackService } from "../services/pack.service"
 import { ProductModel } from "../models/product"
-import { validationResult } from 'express-validator'
 
 export const productRouter = Router()
+
+export interface IUpdate {
+    product_code: number,
+    new_price: number,
+}
+
 const productService = new ProductService()
-
-productRouter.post('/', (req, res) => {
-    try {
-        const errors = validationResult(req)
-
-        if (!errors.isEmpty()) {
-            return res.status(422).json(errors.array())
-        }
-
-        const payload = matchedData(req) as ProductModel
-        const product = productService.createProduct(payload)
-
-        return product.then(p => res.json(p))
-    }
-    catch (error) {
-        res.status(500).json({ error: error.message })
-    }
-})
+const packService = new PackService()
 
 productRouter.get('/', async (req, res) => {
     try {
@@ -35,21 +23,80 @@ productRouter.get('/', async (req, res) => {
     }
 })
 
-productRouter.patch('/:code', async (req, res) => {
-    const { code } = req.params
-    const { sales_price } = req.body
-
+productRouter.post('/validate', async (req, res) => {
     try {
-        const validation = await productService.validateUpdate(Number(code), sales_price)
-        if (!validation) {
-            const product = await productService.updatePrice(Number(code), sales_price)
-            res.status(200).json(product)
+        const productsToValidate: IUpdate[] = req.body
+        const validatedProducts = []
+
+        await Promise.all(
+            productsToValidate.map(async (product) => {
+                // Valida se o código é de um pack
+                const pack = await packService.getPackByProductCode(product.product_code)
+                if (pack) {
+                    const validatedPack = await packService.validatePackUpdate(pack, product, productsToValidate)
+                    validatedProducts.push(validatedPack)
+                }
+                else {
+                    const validatedProduct = await productService.validateUpdate(product.product_code, product.new_price)
+                    validatedProducts.push(validatedProduct)
+                }
+            })
+        )
+
+        res.status(200).json(validatedProducts)
+    }
+    catch (error) {
+        res.status(500).json({ erro: error.message })
+    }
+})
+
+productRouter.patch('/multiple-update', async (req, res) => {
+    try {
+        const productsToUpdate: IUpdate[] = req.body
+        const updatedProducts = []
+        const validatedProducts = []
+
+        await Promise.all(
+            productsToUpdate.map(async (product) => {
+                // Valida se o código é de um pack
+                const pack = await packService.getPackByProductCode(product.product_code)
+                if (pack) {
+                    const validatedPack = await packService.validatePackUpdate(pack, product, productsToUpdate)
+                    validatedProducts.push(validatedPack)
+                }
+                else {
+                    const validatedProduct = await productService.validateUpdate(product.product_code, product.new_price)
+                    validatedProducts.push(validatedProduct)
+                }
+            })
+        )
+
+        let canUpdate = true
+
+        validatedProducts.map(product => {
+            if (product?.message !== '') {
+                canUpdate = false
+            }
+        })
+
+        if (!canUpdate) {
+            res.status(400).json(validatedProducts)
         }
-        else {
-            res.status(422).json({ error: validation })
+        else{
+            await Promise.all(
+                productsToUpdate.map(async (product) => {
+                    const { product_code, new_price } = product
+                    const updatedProduct = await productService.updatePrice(product_code, new_price)
+                    updatedProducts.push(updatedProduct)
+                })
+            )
+    
+            console.log(updatedProducts)
+    
+            res.status(200).json(updatedProducts)
         }
     }
     catch (error) {
-        res.status(500).json({ error: error.message })
+        res.status(500).json({ erro: error.message })
     }
 })
