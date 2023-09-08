@@ -11,7 +11,7 @@ export class PackService {
 
     async validatePackUpdate(pack: PackModel, product: IUpdate, productsToValidate: IUpdate[]) {
         // Valida se o pacote é valido
-        const isPackValid = this.isPackValid(pack, product);
+        const isPackValid = this.isPackValid(product);
         if (!isPackValid) {
             return this.createErrorMessage(product.product_code, 'O pacote não é um produto válido');
         }
@@ -37,7 +37,7 @@ export class PackService {
         return this.productService.validateUpdate(product.product_code, product.new_price);
     }
     
-    isPackValid(pack: PackModel, product: IUpdate) {
+    isPackValid(product: IUpdate) {
         const packProduct = this.productService.getProductByCode(product.product_code);
         return packProduct !== null;
     }
