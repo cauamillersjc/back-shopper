@@ -8,7 +8,7 @@ export class ProductService {
             let message = ''
 
             if (!product) {
-                return { product: { code: code }, message: 'Produto não encontrado.' }
+                return { code: code, message: 'Produto não encontrado.', new_price: new_price }
             }
 
             const { cost_price, sales_price } = product
@@ -24,7 +24,7 @@ export class ProductService {
                 message += `A variação de preço é diferente de 10%. O novo preço deve ser ${highestLimit} ou ${lowestLimit}.`
             }
 
-            return { product: product, message: message }
+            return {...product.dataValues, message: message, new_price: new_price}
         }
         catch (error) {
             throw new Error(error.message)
